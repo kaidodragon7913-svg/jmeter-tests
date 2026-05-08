@@ -12,45 +12,62 @@ pipeline {
 
     environment {
         SSH_HOST = 'root@172.17.0.1'
+        REMOTE_DIR = "/opt/jmeter-runs/build-${BUILD_NUMBER}"
     }
 
     stages {
-
-        stage('Checkout') {
+        stage('Prepare remote dir') {
             steps {
-                checkout scm
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'host-ssh-key',
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    )
+                ]) {
+                    sh '''
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_HOST} "
+                            mkdir -p ${REMOTE_DIR}
+                            rm -rf ${REMOTE_DIR}/*
+                        "
+                    '''
+                }
             }
         }
 
-        stage('Run JMeter via SSH') {
+        stage('Upload project to host') {
             steps {
-
-                sshagent(credentials: ['host-ssh-key']) {
-
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'host-ssh-key',
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    )
+                ]) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ${SSH_HOST} "
-
-                            mkdir -p /opt/jmeter-run
-
-                            rm -rf /opt/jmeter-run/*
-
-                        "
-                    '''
-
-                    sh '''
-                        scp -o StrictHostKeyChecking=no -r \
+                        scp -i ${SSH_KEY} -o StrictHostKeyChecking=no -r \
                           test-plans \
                           data \
                           properties \
                           scripts \
-                          ${SSH_HOST}:/opt/jmeter-run/
+                          ${SSH_HOST}:${REMOTE_DIR}/
                     '''
+                }
+            }
+        }
 
+        stage('Run JMeter on host') {
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'host-ssh-key',
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    )
+                ]) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ${SSH_HOST} "
-
-                            cd /opt/jmeter-run
-
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_HOST} "
+                            cd ${REMOTE_DIR}
                             chmod +x scripts/run_jmeter.sh
 
                             ./scripts/run_jmeter.sh \
@@ -60,7 +77,6 @@ pipeline {
                               ${DURATION} \
                               ${URL} \
                               ${THROUGHPUT}
-
                         "
                     '''
                 }
@@ -69,14 +85,18 @@ pipeline {
 
         stage('Download results') {
             steps {
-
-                sshagent(credentials: ['host-ssh-key']) {
-
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'host-ssh-key',
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    )
+                ]) {
                     sh '''
                         mkdir -p results
 
-                        scp -o StrictHostKeyChecking=no -r \
-                          ${SSH_HOST}:/opt/jmeter-run/results/* \
+                        scp -i ${SSH_KEY} -o StrictHostKeyChecking=no -r \
+                          ${SSH_HOST}:${REMOTE_DIR}/results/* \
                           results/ || true
                     '''
                 }
