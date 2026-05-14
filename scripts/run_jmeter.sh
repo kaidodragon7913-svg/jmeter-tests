@@ -1,14 +1,29 @@
 #!/bin/bash
 set -e
 
-TEST_PLAN=${1:-load_test.jmx}
+TEST_PLAN=${1:-test_pipe.jmx}
 THREADS=${2:-1}
 RAMPUP=${3:-0}
 DURATION=${4:-300}
-URL=${5:-http://localhost}
+RAW_URL=${5:-http://localhost}
 THROUGHPUT=${6:-1}
 
 WORK_DIR=$(pwd)
+
+if [[ "${RAW_URL}" == *"://"* ]]; then
+  PROTOCOL="${RAW_URL%%://*}"
+  HOST_PORT_PATH="${RAW_URL#*://}"
+else
+  PROTOCOL="http"
+  HOST_PORT_PATH="${RAW_URL}"
+fi
+
+HOST_PORT="${HOST_PORT_PATH%%/*}"
+URL="${HOST_PORT%%:*}"
+PORT=""
+if [[ "${HOST_PORT}" == *":"* ]]; then
+  PORT="${HOST_PORT#*:}"
+fi
 
 rm -rf results/*
 mkdir -p results
@@ -20,6 +35,8 @@ jmeter -n \
   -JrampUp="${RAMPUP}" \
   -Jduration="${DURATION}" \
   -Jurl="${URL}" \
+  -Jprotocol="${PROTOCOL}" \
+  -Jport="${PORT}" \
   -Jthroughput="${THROUGHPUT}" \
   -l "${WORK_DIR}/results/results.jtl" \
   -e -o "${WORK_DIR}/results/html-report"

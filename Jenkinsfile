@@ -5,9 +5,9 @@ pipeline {
         string(name: 'THREADS', defaultValue: '10')
         string(name: 'RAMPUP', defaultValue: '30')
         string(name: 'DURATION', defaultValue: '300')
-        string(name: 'URL', defaultValue: 'http://localhost')
+        string(name: 'URL', defaultValue: '5.42.97.48')
         string(name: 'THROUGHPUT', defaultValue: '100')
-        string(name: 'TEST_PLAN', defaultValue: 'load_test.jmx')
+        string(name: 'TEST_PLAN', defaultValue: 'test_pipe.jmx')
     }
 
     environment {
