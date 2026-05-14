@@ -39,4 +39,17 @@ jmeter -n \
   -Jport="${PORT}" \
   -Jthroughput="${THROUGHPUT}" \
   -l "${WORK_DIR}/results/results.jtl" \
-  -e -o "${WORK_DIR}/results/html-report"
+  -e -o "${WORK_DIR}/results/html-report" &
+
+JMETER_PID=$!
+
+cleanup() {
+  if kill -0 "${JMETER_PID}" 2>/dev/null; then
+    kill -TERM "${JMETER_PID}" 2>/dev/null || true
+    wait "${JMETER_PID}" 2>/dev/null || true
+  fi
+}
+
+trap cleanup TERM INT HUP
+
+wait "${JMETER_PID}"
