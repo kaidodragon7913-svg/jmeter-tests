@@ -76,24 +76,7 @@ pipeline {
                               ${RAMPUP} \
                               ${DURATION} \
                               ${URL} \
-                              ${THROUGHPUT} &
-
-                            REMOTE_PID=\$!
-                            echo \$REMOTE_PID > jmeter.pid
-
-                            cleanup() {
-                              if kill -0 \$REMOTE_PID 2>/dev/null; then
-                                kill -TERM \$REMOTE_PID 2>/dev/null || true
-                                wait \$REMOTE_PID 2>/dev/null || true
-                              fi
-                            }
-
-                            trap cleanup TERM INT HUP
-
-                            wait \$REMOTE_PID
-                            EXIT_CODE=\$?
-                            rm -f jmeter.pid
-                            exit \$EXIT_CODE
+                              ${THROUGHPUT}
                         "
                     '''
                 }
@@ -132,11 +115,10 @@ pipeline {
             ]) {
                 sh '''
                     ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_HOST} "
-                        if [ -f ${REMOTE_DIR}/jmeter.pid ]; then
-                            PID=\\$(cat ${REMOTE_DIR}/jmeter.pid)
+                        if [ -f ${REMOTE_DIR}/run_jmeter.pid ]; then
+                            PID=\\$(cat ${REMOTE_DIR}/run_jmeter.pid)
                             kill -TERM \\${PID} 2>/dev/null || true
-                            wait \\${PID} 2>/dev/null || true
-                            rm -f ${REMOTE_DIR}/jmeter.pid
+                            rm -f ${REMOTE_DIR}/run_jmeter.pid
                         fi
                     " || true
                 '''
