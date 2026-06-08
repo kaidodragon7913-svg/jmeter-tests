@@ -11,7 +11,7 @@ pipeline {
     }
 
     environment {
-        SSH_HOST = 'root@172.17.0.1'
+        SSH_HOST = 'root@213.226.127.198'
         REMOTE_DIR = "/opt/jmeter-runs/build-${BUILD_NUMBER}"
     }
 
