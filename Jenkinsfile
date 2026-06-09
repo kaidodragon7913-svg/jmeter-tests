@@ -115,16 +115,42 @@ pipeline {
             ]) {
                 sh '''
                     ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_HOST} "
+                        if command -v shutdown.sh >/dev/null 2>&1; then
+                            shutdown.sh || true
+                        fi
+
+                        sleep 10
+
                         if [ -f ${REMOTE_DIR}/run_jmeter.pgid ]; then
                             PGID=\\$(cat ${REMOTE_DIR}/run_jmeter.pgid)
                             kill -TERM -- -\\${PGID} 2>/dev/null || true
-                            rm -f ${REMOTE_DIR}/run_jmeter.pgid
+
+                            sleep 5
+
+                            if kill -0 \\${PGID} 2>/dev/null; then
+                                kill -KILL -- -\\${PGID} 2>/dev/null || true
+                            fi
                         fi
                     " || true
                 '''
             }
         }
         always {
+            withCredentials([
+                sshUserPrivateKey(
+                    credentialsId: 'host-ssh-key',
+                    keyFileVariable: 'SSH_KEY',
+                    usernameVariable: 'SSH_USER'
+                )
+            ]) {
+                sh '''
+                    mkdir -p results
+
+                    scp -i ${SSH_KEY} -o StrictHostKeyChecking=no -r \
+                      ${SSH_HOST}:${REMOTE_DIR}/results/* \
+                      results/ || true
+                '''
+            }
             archiveArtifacts artifacts: 'results/**/*', allowEmptyArchive: true
         }
     }
