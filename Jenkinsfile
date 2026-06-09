@@ -115,10 +115,10 @@ pipeline {
             ]) {
                 sh '''
                     ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_HOST} "
-                        if [ -f ${REMOTE_DIR}/run_jmeter.pid ]; then
-                            PID=\\$(cat ${REMOTE_DIR}/run_jmeter.pid)
-                            kill -TERM \\${PID} 2>/dev/null || true
-                            rm -f ${REMOTE_DIR}/run_jmeter.pid
+                        if [ -f ${REMOTE_DIR}/run_jmeter.pgid ]; then
+                            PGID=\\$(cat ${REMOTE_DIR}/run_jmeter.pgid)
+                            kill -TERM -- -\\${PGID} 2>/dev/null || true
+                            rm -f ${REMOTE_DIR}/run_jmeter.pgid
                         fi
                     " || true
                 '''
